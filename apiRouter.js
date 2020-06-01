@@ -1,24 +1,21 @@
 // import express from "express";
-const express = require("express");
-const server = express();
+const { Router } = require("express");
+const router = Router();
 const Joi = require("@hapi/joi");
 
 const contacts = require("./contacts");
 
-server.use(express.json());
 // Get all contacts
-server.get("/api/contacts", async (req, res) => {
+router.get("/contacts", async (req, res) => {
   try {
-    // res.send(JSON.stringify(contacts.listContacts()));
     const allContacts = await contacts.listContacts();
     return res.status(200).json(allContacts);
-    // res.statusCode = 200;
   } catch (error) {
     // res.sendStatus(400);
   }
 });
 //Get by Id
-server.get("/api/contacts/:id", async (req, res, next) => {
+router.get("/contacts/:id", async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     const contactFind = await contacts.getContactById(id);
@@ -30,14 +27,10 @@ server.get("/api/contacts/:id", async (req, res, next) => {
   } catch (error) {}
 });
 // Create contacts
-server.post("/api/contacts", validateCreateUser, async (req, res, next) => {
+router.post("/contacts", validateCreateUser, async (req, res, next) => {
   try {
     const { name, email, phone } = req.body;
     await contacts.addContact(name, email, phone);
-    // const user =  await contacts.listContacts()
-    // const newUser = user[user.length-1]
-    // console.log("code is working");
-    // return res.status(201);
     res.sendStatus(201);
   } catch (err) {
     next(err);
@@ -46,7 +39,7 @@ server.post("/api/contacts", validateCreateUser, async (req, res, next) => {
 
 // Delete User
 
-server.delete("/api/contacts/:id", async (req, res, next) => {
+router.delete("/contacts/:id", async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     const contactFind = await contacts.getContactById(id);
@@ -60,34 +53,28 @@ server.delete("/api/contacts/:id", async (req, res, next) => {
   } catch (error) {}
 });
 // Update user
-server.patch(
-  "/api/contacts/:id",
-  validateUpdateUser,
-  async (req, res, next) => {
-    try {
-      const body = req.body;
-      const id = Number(req.params.id);
-      if (isEmpty(body)) {
-        res.status(400).json({ message: "missing fields" });
-      } else {
-        const updatedUser = await contacts.updateContact(body, id);
-        if (!updatedUser) {
-          return res.status(404).json({ message: "user not found" });
-        }
-        return res.status(200).json(updatedUser);
+router.patch("/contacts/:id", validateUpdateUser, async (req, res, next) => {
+  try {
+    const body = req.body;
+    const id = Number(req.params.id);
+    if (isEmpty(body)) {
+      res.status(400).json({ message: "missing fields" });
+    } else {
+      const updatedUser = await contacts.updateContact(body, id);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "user not found" });
       }
-      //check for empty object
-      function isEmpty(obj) {
-        for (let key in obj) {
-          return false;
-        }
-        return true;
+      return res.status(200).json(updatedUser);
+    }
+    //check for empty object
+    function isEmpty(obj) {
+      for (let key in obj) {
+        return false;
       }
-    } catch (error) {}
-  }
-);
-
-server.listen(3000, () => console.log("Example app listening on port 3000!"));
+      return true;
+    }
+  } catch (error) {}
+});
 
 function validateCreateUser(req, res, next) {
   const body = req.body;
@@ -119,3 +106,5 @@ function validateUpdateUser(req, res, next) {
   }
   next();
 }
+
+module.exports = router;
