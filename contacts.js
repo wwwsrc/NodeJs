@@ -53,10 +53,38 @@ function addContact(name, email, phone) {
     console.log("error: ", error);
   }
 }
+function updateContact(body, id) {
+  try {
+    const userUpdatedIndex = listContacts().findIndex(
+      (contactSearched) => contactSearched.id === id
+    );
+    if (userUpdatedIndex === -1) {
+      return false;
+    }
+    let contacts = listContacts();
+    contacts[userUpdatedIndex] = {
+      ...contacts[userUpdatedIndex],
+      ...body,
+    };
+    const userUpdatetUserInfoReturn = contacts[userUpdatedIndex];
+    fs.writeFileSync(contactsPath, JSON.stringify(contacts), (err) => {
+      if (err) throw err;
+    });
+    return userUpdatetUserInfoReturn;
+    // const indexUser
+    // const addNewContact = [...contacts, { name, email, phone, id }];
+    // fs.writeFileSync(contactsPath, JSON.stringify(addNewContact), (err) => {
+    //   if (err) throw err;
+    // });
+  } catch (error) {
+    console.log("error: ", error);
+  }
+}
 
 module.exports = {
   listContacts,
   getContactById,
   removeContact,
   addContact,
+  updateContact,
 };
