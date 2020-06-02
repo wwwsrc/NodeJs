@@ -8,6 +8,7 @@ const user = {
 const user2 = {
   name: "vasya",
 };
+console.log("path to dir here", __dirname);
 
 module.exports = {
   user: user,
