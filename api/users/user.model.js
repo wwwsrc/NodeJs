@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 mongoose.set("useFindAndModify", false);
 
 const userSchema = new Schema({
-  name: { type: String, requiered: true },
+  name: { type: String, required: true },
   email: { type: String, required: true },
   phone: { type: String, required: true },
 });

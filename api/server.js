@@ -3,6 +3,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
 const usersRouter = require("./users/user.router");
+//hw4
+const cookieParser = require("cookie-parser");
+import { authRouter } from "./auth/auth.router";
 module.exports = class Server {
   constructor() {
     this.app = null;
@@ -23,9 +26,13 @@ module.exports = class Server {
     this.app.use(express.json());
     this.app.use(cors());
     this.app.use(morgan("combined"));
+    //hw3
+    this.app.use(cookieParser());
   }
   initRoutes() {
     this.app.use("/api", usersRouter);
+    this.app.use("/auth", authRouter);
+    this.app.use("/users", authRouter);
   }
 
   async initDatabase() {
