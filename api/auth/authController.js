@@ -1,20 +1,42 @@
+const path = require("path");
+const fsPromises = require("fs").promises;
 import Joi from "@hapi/joi";
 import { UserModel } from "../auth/userAuth.model";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createControllerProxy } from "../helpers/controllerProxy";
+import { createAvatar } from "../helpers/avatarGenerate";
+const shortid = require("shortid");
 
 class AuthController {
   async signUp(req, res, next) {
     try {
-      const { email, password } = req.body;
+      const { email, password, subscription } = req.body;
 
       const existingUser = await UserModel.findByEmail(email);
       if (existingUser) {
         return res.status(409).json({ message: "Email in use" });
       }
+
+      const userAvatar = await createAvatar(email);
+      const id = shortid();
+      const avatarFileName = `${id}.png`;
+      const avatarPath = path.join(
+        __dirname,
+        `../../public/images/${avatarFileName}`
+      );
+
+      await fsPromises.writeFile(avatarPath, userAvatar);
+
+      const avatarURL = `http://localhost:3000/public/images/${avatarFileName}`;
+      console.log(email, avatarURL);
       const passwordHash = await this.createHash(password);
-      const newUser = await UserModel.createUser(email, passwordHash);
+      const newUser = await UserModel.createUser(
+        email,
+        passwordHash,
+        subscription,
+        avatarURL
+      );
       return res.status(201).json({
         user: {
           email: newUser.email,
@@ -86,17 +108,36 @@ class AuthController {
     try {
       const { token } = req.cookies;
       const user = await UserModel.findByToken(token);
-      const { email, subscription } = user;
+      const { email, subscription, avatarURL } = user;
+      const oldAvatarName = path.basename(avatarURL);
+      console.log(oldAvatarName);
       return res.status(200).json({
         email,
         subscription,
       });
     } catch (error) {}
   }
+  //avatar update change old avatar for new
+  async updateAvatar(req, res, next) {
+    try {
+      const { token } = req.cookies;
+      const user = await UserModel.findByToken(token);
+      const { avatarURL } = user;
+      const avatarFileName = path.basename(avatarURL);
+      const newAvatar = req.file.buffer;
+      const avatarPath = path.join(
+        __dirname,
+        `../../public/images/${avatarFileName}`
+      );
+      await fsPromises.writeFile(avatarPath, newAvatar);
+      return res.status(200).json({
+        avatarURL: avatarURL,
+      });
+    } catch (error) {}
+  }
 
   async signOut(req, res, next) {
     const { _id: userId } = req.user;
-    // console.log(req.user, "<=>", userId);
     await UserModel.updateUser(userId, { token: null });
     res.cookie("token", null, { httpOnly: true });
     return res.status(204).send();
@@ -106,13 +147,14 @@ class AuthController {
     const newUserValidateSchema = Joi.object({
       email: Joi.string().required(),
       password: Joi.string().required(),
+      avatarURL: Joi.string(),
     });
 
     const validationResult = newUserValidateSchema.validate(req.body);
     if (validationResult.error) {
       return res
         .status(400)
-        .json({ message: "Ошибка от Joi или другой валидационной библиотеки" });
+        .json({ message: "Missing or wrong required field" });
     }
     next();
   }
@@ -126,7 +168,7 @@ class AuthController {
     if (validationResult.error) {
       return res
         .status(400)
-        .json({ message: "Ошибка от Joi или другой валидационной библиотеки" });
+        .json({ message: "Missing or wrong required field" });
     }
     next();
   }
